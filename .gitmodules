@@ -1,0 +1,4 @@
+[submodule "systemsgoliveblog/public"]
+	path = systemsgoliveblog/public
+	url = https://github.com/Mik3asg/Mik3asg.github.io.git
+	branch = main
