@@ -1,4 +1,34 @@
 baseURL = 'https://Mik3asg.github.io/'
 languageCode = 'en-us'
-title = 'My New Hugo Site'
+title = 'Mickael Asghar'
 theme = 'm10c'
+[menu]
+  [[menu.main]]
+    identifier = "home"
+    name = "Home"
+    url = "/"
+    weight = 1
+  [[menu.main]]
+    identifier = "tags"
+    name = "Tags"
+    url = "/tags/"
+    weight = 2
+  #[[menu.main]]
+    #identifier = "about"
+    #name = "About"
+    #url = "/about/"
+    #weight = 3
+
+[params]
+  author = "Mickael Asghar"
+  description = "Welcome to SystemsGo.live – my blog where I share my experiences and insights in cloud-native technologies, DevOps practices, IT automation, and various IT topics."
+
+  menu_item_separator = " - "
+  [[params.social]]
+    icon = "github"
+    name = "Github"
+    url = "https://github.com/mik3asg"
+  [[params.social]]
+    icon = "linkedin"
+    name = "LinkedIn"
+    url = "https://www.linkedin.com/in/m-asghar/"
