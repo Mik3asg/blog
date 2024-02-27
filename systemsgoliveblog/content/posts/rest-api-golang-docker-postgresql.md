@@ -11,7 +11,8 @@ The API manages user information, including name, email, and city.
 
 ![Image alt text](https://i.imgur.com/HotRBa0.png)
 
-**Note:** As of now, this demo does not include a user interface as it has not been built for the purpose of this demo. The code for this demo is available on [GitHub](https://github.com/Mik3asg/Rest-API-Golang-Mux-PostgreSQL-Docker).
+**Note:** As of now, this demo does not include an
+ user interface as it has not been built for the purpose of this demo. The code for this demo is available on [GitHub](https://github.com/Mik3asg/Rest-API-Golang-Mux-PostgreSQL-Docker).
 
 
 ## Pre-requisites/Assumptions:
