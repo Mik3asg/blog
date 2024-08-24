@@ -4,8 +4,6 @@ date: 2024-08-20T13:49:28+01:00
 draft: false
 tags: ['Logrotate', 'Linux', 'SysAdmin', 'DiskSpaceOptimisation', 'LogManagement']
 ---
-# Logrotate Configuration Setup  in AlmaLinux 8.9
-
 ## **Introduction**
 Before diving into the details, I want to share an overview of a recent log rotation project I worked on. Below is a breakdown of the tasks, challenges, and solutions, all while protecting confidential data. By implementing these solutions, we reduced log file disk usage from 6GB to 2GB—a 66.7% reduction.
 
