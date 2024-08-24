@@ -2,6 +2,7 @@
 title: "LogicMonitor: Understanding Why CPUBusyPercent Alert Was Not Triggered"
 date: 2024-08-23T22:05:29+01:00
 draft: false
+tags: ['Monitoring', 'CPU', 'Metrics', 'Alert', 'Threshold', 'MySQL']
 ---
 ## Problem Statement:
 On 15th August 2024, an incident occurred where the `CPUBusyPercent` alert did not trigger for one of our Production MySQL Database VMs (DB01), despite the CPU being at 100% for seven minutes. This was unexpected since the threshold settings in LogicMonitor were supposed to trigger alerts under such conditions.
