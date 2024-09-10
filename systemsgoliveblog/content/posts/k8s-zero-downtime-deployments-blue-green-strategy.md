@@ -2,14 +2,13 @@
 title: "Kubernetes - Zero Downtime Deployments: Blue/Green Strategy"
 date: 2024-09-09T16:49:36+01:00
 draft: false
-tags: ['Kubernetes', 'Deployment', 'Strategy', 'Service', 'Routing']
+tags: ['Kubernetes', 'Deployment', 'Strategy', 'Service', 'Routing', 'Environment']
 ---
 # Overview
 In this guide, I'll demonstrate a blue-green deployment strategy in Kubernetes using Deployments and Services. The goal is to achieve zero downtime by running two sets of pods: the current version (v1.0, blue) and the new version (v2.0, green). I'll also explain how to roll back from green to blue if necessary.
 
 
-# Setup Environments
-## Blue Environment 
+## Setup the Blue Environment 
 The blue-deployment.yaml defines the current environment running version 1.0 of the app.
 
 ```yaml
@@ -40,7 +39,7 @@ spec:
         ports:
         - containerPort: 3000
 ```
-### Deploy the blue environment:
+### Deploy the Blue Environment:
 ```bash
 kubectl apply -f blue-deployment.yaml
 ```
@@ -54,7 +53,7 @@ kubectl get pods -l env=blue
 ![blue-deployment](/blue-deployment.PNG)
 
 
-## Exposing the Blue Deployment
+### Exposing the Blue Deployment
 The blue-green-service.yaml is responsible for routing traffic to our blue pods using a LoadBalancer Service. The traffic routing occurs because the selector values in blue-deployment.yaml (``spec:selector:matchLabels``) match the selector values defined in the blue-green-service.yaml (`spec:selector`).
 
 This is how Kubernetes ensures that traffic is directed to the correct set of pods (in this case, the blue pods running version 1.0). Here's the service manifest:
@@ -93,7 +92,7 @@ curl http://<EXTERNAL_IP>
 
 ![curl-blue-service.PNG](/curl-blue-service.PNG)
 
-## Deploy the Green Environment
+## Setup the Green Environment
 
 At this stage, we will deploy the new version of the application (v2.0) by defining a new deployment manifest green-deployment.yaml. The green environment will be deployed alongside the blue environment, but traffic will still be routed to the blue pods until we update the service to point to the green ones.
 
@@ -136,7 +135,7 @@ Here:
 ```bash
 kubectl apply -f green-deployment.yaml
 ```
-![blue-green-deploy-pods](/blue-green-deploy-pods.PNG)
+![blue-green-deploy](/blue-green-deploy.PNG)
 
 At this point, both the blue (v1.0) and green (v2.0) pods are running in parallel, but traffic is still being routed to the blue environment.
 
@@ -216,9 +215,6 @@ kubectl apply -f blue-green-service.yaml
 kubectl get svc
 curl http://<EXTERNAL_IP>
 ```
-
-
-
 
 # Conclusion
 Blue-green deployments in Kubernetes allow for zero-downtime updates by running both the old (blue) and new (green) versions of an application in parallel. This strategy ensures that traffic can be seamlessly switched between versions by simply updating the service’s selector. In case of issues with the new version, rolling back to the stable version is quick and risk-free.
