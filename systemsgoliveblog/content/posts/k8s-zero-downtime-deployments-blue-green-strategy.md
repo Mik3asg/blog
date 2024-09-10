@@ -47,17 +47,15 @@ kubectl apply -f blue-deployment.yaml
 
 ### Check the deployment status: 
 ```bash
-kubectl get deploy`` and ``kubectl get pods -l env=blue
+kubectl get deploy
+kubectl get pods -l env=blue
 ```
 
 ![blue-deployment](/blue-deployment.PNG)
 
-*Figure 1: Output of the kubectl commands ran above*
-
 
 ## Exposing the Blue Deployment
-
-The blue-green-service.yaml is responsible for routing traffic to our blue pods using a LoadBalancer Service. The traffic routing occurs because the selector values in blue-deployment.yaml (i.e., ``spec:selector:matchLabels``) match the selector values defined in the blue-green-service.yaml (i.e., `spec:selector`).
+The blue-green-service.yaml is responsible for routing traffic to our blue pods using a LoadBalancer Service. The traffic routing occurs because the selector values in blue-deployment.yaml (``spec:selector:matchLabels``) match the selector values defined in the blue-green-service.yaml (`spec:selector`).
 
 This is how Kubernetes ensures that traffic is directed to the correct set of pods (in this case, the blue pods running version 1.0). Here's the service manifest:
 
@@ -93,7 +91,6 @@ kubectl get svc
 curl http://<EXTERNAL_IP>
 ```
 
-![blue-green-service-deployment-yaml](/blue-green-service-deployment-yaml.PNG)
 ![curl-blue-service.PNG](/curl-blue-service.PNG)
 
 ## Deploy the Green Environment
@@ -114,7 +111,7 @@ spec:
   selector:
     matchLabels:
       app: my-node-app
-      env: green
+      env: green 
   template:
     metadata:
       labels:
@@ -131,8 +128,8 @@ spec:
 
 Here:
 
-- The labels applied to the green pods (`app:my-node-app`, `env:green`, `version: v2.0`) differentiate them from the blue pods running the older version.
-- The selector in this deployment (`app:my-node-app`, `env: green`) will manage these green pods, ensuring Kubernetes knows which pods belong to this new environment.
+- The labels applied to the green pods (`app:my-node-app`, `env:green`, `version:v2.0`) differentiate them from the blue pods running the older version.
+- The selector in this deployment (`app:my-node-app`, `env:green`) will manage these green pods, ensuring Kubernetes knows which pods belong to this new environment.
 
 
 ### Deploy the Green Environment
@@ -142,10 +139,6 @@ kubectl apply -f green-deployment.yaml
 ![blue-green-deploy-pods](/blue-green-deploy-pods.PNG)
 
 At this point, both the blue (v1.0) and green (v2.0) pods are running in parallel, but traffic is still being routed to the blue environment.
-
-
-
-
 
 
 ## Update the Service to Re-route traffic from Blue to Green
@@ -163,7 +156,7 @@ spec:
   type: LoadBalancer
   selector:
     app: my-node-app
-    env: green
+    env: green  # update from blue to green for migration
   ports:
   - name: http
     protocol: TCP
@@ -171,7 +164,7 @@ spec:
     targetPort: 3000
 ```
 - The selector in the updated blue-green-service.yaml is now set to env: green, meaning the service will route traffic to the green pods (v2.0) instead of the blue ones.
-- Since the selector values in the green-deployment.yaml (spec:selector:matchLabels) now match those in the service (spec:selector), all traffic will flow to the green pods.
+- Since the selector values in the green-deployment.yaml (`spec:selector:matchLabels`) now match those in the service (`spec:selector`), all traffic will flow to the green pods.
 
 ### Apply the updated service configuration:
 ```bash
@@ -187,6 +180,50 @@ curl http://<EXTERNAL_IP>
 
 ![curl-blue-service.PNG](/curl-blue-service.PNG)
 
-## Conclusion
-At this point, the service has successfully re-routed traffic to the green pods, running version 2.0 of the application, without any downtime. The blue pods can now be scaled down or removed once you’re confident in the green deployment's stability.
+## Rolling Back to the Blue Environment
+In a blue-green deployment, rolling back is straightforward because both environments (blue and green) are running simultaneously. If any issues are found in the green deployment (v2.0), you can quickly revert traffic back to the stable blue environment (v1.0) by updating the service selector.
+
+To roll back traffic from the green pods (v2.0) to the blue pods (v1.0), we need to update the blue-green-service.yaml again. By changing the service’s selector back to env: blue, we ensure that the LoadBalancer routes traffic to the blue pods.
+
+Here's how to update the service for rollback:
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: blue-green-svc
+spec:
+  type: LoadBalancer
+  selector:
+    app: my-node-app
+    env: blue  # Rollback update: route traffic back to blue (v1.0)
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 3000
+```
+In this manifest:
+
+- The selector has been changed back to env: blue (as indicated in the comment), which matches the labels of the blue pods (v1.0). 
+- This change re-routes all traffic back to the blue environment, restoring the previous stable version of the application.
+To perform the rollback, apply the updated service configuration:
+```bash
+kubectl apply -f blue-green-service.yaml
+```
+### Verify that the service is now routing traffic to the blue pods:
+```bash
+kubectl get svc
+curl http://<EXTERNAL_IP>
+```
+
+
+
+
+# Conclusion
+Blue-green deployments in Kubernetes allow for zero-downtime updates by running both the old (blue) and new (green) versions of an application in parallel. This strategy ensures that traffic can be seamlessly switched between versions by simply updating the service’s selector. In case of issues with the new version, rolling back to the stable version is quick and risk-free.
+## Why Rollback is Efficient in Blue-Green Deployments
+Immediate Recovery: Since the blue environment is always running, traffic can be quickly redirected back without needing to redeploy the stable version.
+Minimal Risk: Rolling back is as simple as updating the service selector, with no need to terminate the green pods or affect user traffic.
+This approach provides flexibility, reduces risk, and ensures a smooth deployment process, making it ideal for production environments where uptime is critical.
 
