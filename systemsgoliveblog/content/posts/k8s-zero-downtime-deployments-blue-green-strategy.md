@@ -76,7 +76,7 @@ spec:
 ```
 In this manifest:
 
-- The selector in blue-green-service.yaml specifies that the service should route traffic to pods labeled app: my-node-app and env: blue. This matches the labels set in the blue-deployment.yaml manifest.
+- The selector in blue-green-service.yaml specifies that the service should route traffic to pods labeled app: my-node-app and `env:blue`. This matches the labels set in the blue-deployment.yaml manifest.
 
 - As a result, all incoming traffic through this LoadBalancer Service will be routed to the blue pods running version 1.0 of the application.
 
@@ -162,7 +162,7 @@ spec:
     port: 80
     targetPort: 3000
 ```
-- The selector in the updated blue-green-service.yaml is now set to env: green, meaning the service will route traffic to the green pods (v2.0) instead of the blue ones.
+- The selector in the updated blue-green-service.yaml is now set to `env:green`, meaning the service will route traffic to the green pods (v2.0) instead of the blue ones.
 - Since the selector values in the green-deployment.yaml (`spec:selector:matchLabels`) now match those in the service (`spec:selector`), all traffic will flow to the green pods.
 
 ### Apply the updated service configuration:
@@ -182,7 +182,7 @@ curl http://<EXTERNAL_IP>
 ## Rolling Back to the Blue Environment
 In a blue-green deployment, rolling back is straightforward because both environments (blue and green) are running simultaneously. If any issues are found in the green deployment (v2.0), you can quickly revert traffic back to the stable blue environment (v1.0) by updating the service selector.
 
-To roll back traffic from the green pods (v2.0) to the blue pods (v1.0), we need to update the blue-green-service.yaml again. By changing the service’s selector back to env: blue, we ensure that the LoadBalancer routes traffic to the blue pods.
+To roll back traffic from the green pods (v2.0) to the blue pods (v1.0), we need to update the blue-green-service.yaml again. By changing the service’s selector back to `env:blue`, we ensure that the LoadBalancer routes traffic to the blue pods.
 
 Here's how to update the service for rollback:
 
@@ -195,7 +195,7 @@ spec:
   type: LoadBalancer
   selector:
     app: my-node-app
-    env: blue  # Rollback update: route traffic back to blue (v1.0)
+    env: blue  # Rollback update - route traffic back to blue (v1.0)
   ports:
   - name: http
     protocol: TCP
@@ -204,7 +204,7 @@ spec:
 ```
 In this manifest:
 
-- The selector has been changed back to env: blue (as indicated in the comment), which matches the labels of the blue pods (v1.0). 
+- The selector has been changed back to `env:blue` (as indicated in the comment), which matches the labels of the blue pods (v1.0). 
 - This change re-routes all traffic back to the blue environment, restoring the previous stable version of the application.
 To perform the rollback, apply the updated service configuration:
 ```bash
@@ -216,10 +216,14 @@ kubectl get svc
 curl http://<EXTERNAL_IP>
 ```
 
-# Conclusion
-Blue-green deployments in Kubernetes allow for zero-downtime updates by running both the old (blue) and new (green) versions of an application in parallel. This strategy ensures that traffic can be seamlessly switched between versions by simply updating the service’s selector. In case of issues with the new version, rolling back to the stable version is quick and risk-free.
+![curl-blue-service.PNG](/curl-blue-service.PNG)
+
 ## Why Rollback is Efficient in Blue-Green Deployments
-Immediate Recovery: Since the blue environment is always running, traffic can be quickly redirected back without needing to redeploy the stable version.
-Minimal Risk: Rolling back is as simple as updating the service selector, with no need to terminate the green pods or affect user traffic.
+- Immediate Recovery: Since the blue environment is always running, traffic can be quickly redirected back without needing to redeploy the stable version.
+- Minimal Risk: Rolling back is as simple as updating the service selector, with no need to terminate the green pods or affect user traffic.
+
 This approach provides flexibility, reduces risk, and ensures a smooth deployment process, making it ideal for production environments where uptime is critical.
 
+
+# Conclusion
+Blue-green deployments in Kubernetes allow for zero-downtime updates by running both the old (blue) and new (green) versions of an application in parallel. This strategy ensures that traffic can be seamlessly switched between versions by simply updating the service’s selector. In case of issues with the new version, rolling back to the stable version is quick and risk-free.
