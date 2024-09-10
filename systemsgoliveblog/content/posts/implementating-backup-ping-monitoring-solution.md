@@ -1,7 +1,7 @@
 ---
 title: "Implementing a Backup Ping Monitoring Solution with a Bash Script for Virtual Machines"
 date: 2024-09-10T16:44:01+01:00
-draft: true
+draft: false
 tags: ['Monitoring', 'Ping', 'Connectivity', 'Alert', 'Incident']
 ---
 ## Problem Statement 
