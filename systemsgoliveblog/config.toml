@@ -21,7 +21,7 @@ theme = 'm10c'
 
 [params]
   author = "Mickael Asghar"
-  description = "Welcome to SystemsGo.live – my blog where I share my experiences and insights in cloud-native technologies, DevOps practices, IT automation, and various IT topics."
+  description = "Welcome to SystemsGo.live – my blog where I share technical insights, hands-on experiences, and solutions to real-world challenges in cloud computing, automation, networking, Linux, microservices, cybersecurity, and beyond."
 
   menu_item_separator = " - "
   [[params.social]]
