@@ -1,11 +1,11 @@
 ---
-title: "Implementing a Backup Ping Monitoring Solution with a Bash Script for Virtual Machines"
+title: "Dealing with False Ping Alerts in LogicMonitor: Building a Fallback Ping Monitoring Script"
 date: 2024-09-10T16:44:01+01:00
 draft: false
 tags: ['Monitoring', 'Ping', 'Connectivity', 'Alert', 'Incident']
 ---
 # Problem Statement 
-On Friday, September 6th at 21:31, we received an alert from LogicMonitor, our cloud monitoring service, indicating that one of our production web app servers (Tomcat#3) was down. Receiving such an alert late on a Friday is never ideal. After SSH-ing into the server, I confirmed it was still operational, pointing to an issue with the monitoring system rather than the VM.
+On Friday, September 6th at 21:31, we received an alert from LogicMonitor indicating one of our production web app servers (Tomcat#3) was down. Upon investigation via SSH, I confirmed the server was operational, suggesting the issue was with the monitoring system rather than the VM.
 
 # Analysis
 A ticket was raised with our IT service provider, who manages our cloud workloads and VMs. Their investigation revealed:
@@ -14,13 +14,18 @@ A ticket was raised with our IT service provider, who manages our cloud workload
 2. All other metrics reported normally, except for ping.
 3. Other servers in the same environment (e.g., Tomcat#1) were successfully reporting ping data.
 
-Their investigation concluded that the LogicMonitor collector responsible for ping monitoring had encountered an issue, causing the false alert. After they resolved the problem, ping monitoring resumed as expected.
+Despite the alert, the server was fully operational, and no ping data was lost. The issue was traced to a problem with the LogicMonitor collector, which caused the false alert. Once resolved, ping monitoring resumed.
 
-# Proposed Alternative: Backup Ping Monitoring Script
-To avoid relying entirely on third-party services for ping checks, I developed a backup ping monitoring script. Running on a separate VM, it regularly pings target servers and sends email alerts if any fail to respond after multiple attempts. While it lacks advanced metrics or graphs, it provides a simple, effective fallback for basic network connectivity monitoring.
+## Graph Explanation
+The graph below shows that the ping metrics, including round-trip time and packet counts, were being reported normally up until 16:09 on September 6th. After that, no new ping data was collected, confirming the issue was related to the monitoring service rather than the server itself.
+
+![ping-data-loss-tomcat-3](/ping_data_loss_tomcat_3.PNG)
+
+# Proposed Alternative: Fallback Ping Monitoring Script
+To reduce reliance on third-party monitoring services, I created a backup ping monitoring script. Running on a separate VM, it pings target servers and sends email alerts if they don’t respond after several attempts. It’s a simple fallback solution for basic connectivity checks.
 
 ## Environment setup:
-This backup ping monitoring solution was implemented and tested in an AWS environment. The setup included 4 EC2 instances:
+This fallback ping monitoring solution was implemented and tested in an AWS environment. The setup included 3 EC2 instances:
 - 1 EC2 instance as the `ping-monitoring server`.
 - 2 EC2 instance as `target hosts`.
 
@@ -29,8 +34,8 @@ Steps 1 through 3 are the prerequisites before running the `ping-failure-alert.s
 
 ### Step 1 - Allow ICMP Through the Firewall
 - **Monitoring Server:** Allow outbound ICMP traffic (ping) for all destinations.
-- **Target Servers:** Allow inbound ICMP traffic (ping), but restrict it to the monitoring server's IP.
-- **Test Connectivity**: Use the ping command from the monitoring server to ensure each target server is reachable and ICMP is enabled: `ping <target_host_public_IP_address>`
+- **Target Servers:** Allow inbound ICMP from the monitoring server’s IP.
+- **Test Connectivity:** Run ping <target_host_public_IP> from the monitoring server to ensure reachability.
 
 ### Step 2 - Install `mailx` package to enable email notification
 `mailx` is a command-line email client used in Unix-like systems to send and receive emails directly from the terminal or within scripts.
@@ -40,13 +45,9 @@ Steps 1 through 3 are the prerequisites before running the `ping-failure-alert.s
 
 ### Step 3 - Gmail Configuration for SMTP Authentication
 To ensure that the script can send email notifications using Gmail’s SMTP service, you need to configure Gmail accordingly. Follow these steps:
-
-#### Enable App Passwords for Gmail:
-If you have Two-Step Verification enabled:
-- Go to `Google Account > Security > Signing in to Google, App Passwords`
-- Type a name in the `App name` field to create an App Password 
-
-#### Configure Generate App password in `/etc/mail.rc` on the Monitoring Server
+1. Enable App Passwords in Gmail if Two-Step Verification is on.
+2. Create an `App Password` under `Google Account > Security > App Passwords`.
+3. Update `/etc/mail.rc` on the Monitoring server with the following configuration:
 ```bash
 set smtp=smtps://smtp.gmail.com:465
 set smtp-auth=login
@@ -59,7 +60,6 @@ set ssl-verify=ignore
 The bash script below pings the servers and sends alerts via email if they are unreachable.
 - Ensure the script is executable (`chmod +x ping-failure-alert.sh`).
 - Restrict access to `root` only for security.
-
 ```bash
 #################################################################################
 # Script Name: ping-failure-alert.sh
@@ -83,9 +83,9 @@ cc_list=$(IFS=','; echo "${cc_recipients[*]}")
 
 # Associative array of server IP addresses and their hostnames
 declare -A ping_targets=(
-    ["192.168.1.202"]="target_host#1"    # adjust IP address and hostname
-    ["192.168.1.203"]="target_host#2"    # adjust IP address and hostname
-    ["192.168.1.204"]="target_host#3"    # adjust IP address and hostname
+    ["10.15.30.40"]="target_host_1"    # adjust IP address and hostname
+    ["50.60.70.80"]="target_host_2"    # adjust IP address and hostname
+    ["90.95.100.110"]="target_host_3"  # adjust IP address and hostname
 )
 
 # Retry settings
@@ -142,26 +142,18 @@ fi
 - **Interval Between Retries (retry_interval):** There is a 30-second interval between retries. This ensures that short downtimes (e.g., server reboot) will not trigger immediate false alerts.
 - **Adjust values accordingly to meet your requirements**: `recipient_email`, `cc_recipients`, `target_host_IP`, `target_hostname`
 
-
 ### Step 5 - Set up the Script as a Cron Job
-To make the script run automatically at regular intervals, we set it up as a cron job. In this case, I recommend running the script every 5 minutes, which provides frequent monitoring while avoiding unnecessary load.
+To automate the script, run it as a cron job every 5 minutes:
 
-1. Open Crontab:
-```bash
-crontab -e
-```
-2. Add the Cron Job: Add the following line to run the script every 5 minutes:
+1. Open Crontab as a root: `crontab -e`
+2. Add the Cron Job:
 ```bash
 */5 * * * * /path/to/ping-failure-alert.sh
 ```
 3. Replace ``/path/to/ping-failure-alert.sh`` with the actual path to your script.
 
 ### Avoiding Unnecessary Alerts
-With 3 retry attempts and a 30-second interval, the script waits about 90 seconds before declaring a server unreachable and sending an alert. Since the cron job runs every 5 minutes, this allows time for brief downtimes or scheduled reboots, avoiding unnecessary alerts for short interruptions like maintenance.
-
+With 3 retry attempts and a 30-second interval, the script waits ~90 seconds before declaring a server unreachable. This reduces unnecessary alerts for brief downtimes, like reboots.
 
 ## Conclusion
-Since ping data collection can fail unexpectedly, this backup ping monitoring script acts as a reliable fallback for basic connectivity checks. It operates independently of the main service, is lightweight, and can be customized as needed:
-- Independent of the primary system.
-- Minimal resource usage.
-- Customizable retry limits, intervals, and email alerts.
+The false alert caused by the monitoring collector led us to realize that the server was never down, despite the loss of ping data. Having a fallback ping monitoring script offers a reliable alternative for connectivity checks, ensuring you’re not misled by false positives from external services. This backup system is lightweight, customizable, and independent of the main monitoring service.
