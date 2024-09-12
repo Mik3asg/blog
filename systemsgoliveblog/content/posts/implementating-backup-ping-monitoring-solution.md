@@ -5,29 +5,29 @@ draft: false
 tags: ['Monitoring', 'Ping', 'Connectivity', 'Alert', 'Incident']
 ---
 # Problem Statement 
-On Friday, September 6th at 21:31, we received an alert from LogicMonitor indicating one of our production web app servers (Tomcat#3) was down. Upon investigation via SSH, I confirmed the server was operational, suggesting the issue was with the monitoring system rather than the VM.
+On Friday 6th September 2024 at 21:31, we received an alert from LogicMonitor indicating one of our production web app servers (Tomcat#3) was down, with the message: `"The host Tomcat#3 (i-xxxxxxx) is down"`. However, shortly after receiving the alert, we attempted to SSH into the VM and confirmed that the server was fully operational.
 
-# Analysis
-A ticket was raised with our IT service provider, who manages our cloud workloads and VMs. Their investigation revealed:
+# Root Cause Investigation and Resolution 
+A ticket was promptly raised with our IT service provider, responsible for managing our Cloud Production workloads, immediately following the alert. Their investigation provided the following findings:
 
-1. Ping data stopped at 16:09 the same day.
-2. All other metrics reported normally, except for ping.
-3. Other servers in the same environment (e.g., Tomcat#1) were successfully reporting ping data.
+- **1. Ping Data:** Ping data from the server stopped reporting at 16:09 on the same day.
+- **2. Other Metrics:** All other performance metrics from the server were reported normally, indicating that the server was functioning properly aside from the ping data issue.
+- **3. Environment Consistency:** Other servers in the same environment (e.g., Tomcat#1) continued to report ping data normally, indicating that the issue was isolated to Tomcat#3.
 
-Despite the alert, the server was fully operational. The ping data stopped reporting due to an issue with the monitoring collector, which led to the false alert. Once the issue was resolved, ping monitoring resumed as expected.
+Upon further analysis by our service provider, it was determined that the ping data had stopped reporting at 16:09, resulting in a delayed false alert at 21:31. The root cause of the issue was traced to a malfunction in the service provider's monitoring tool, which failed to capture ping data properly. Once the issue with the monitoring tool's collector was resolved on Monday, September 9th, ping monitoring resumed, and the false alert was cleared.
 
 ## Graph Explanation
 The graph below shows that the ping metrics, including round-trip time and packet counts, were being reported normally up until 16:09 on September 6th. After that, no new ping data was collected, confirming the issue was related to the monitoring service rather than the server itself.
 
 ![ping-data-loss-tomcat-3](/ping_data_loss_tomcat_3.PNG)
 
-# Proposed Alternative: Fallback Ping Monitoring Script
-To reduce reliance on third-party monitoring services, I created a fallback ping monitoring script. Running on a separate VM acting, it pings target servers and sends email alerts if they don’t respond after several attempts. It’s a simple fallback solution for basic connectivity checks.
+# In-House Alternative Solution: Fallback Ping Monitoring Script
+To reduce reliance on third-party monitoring services, I created a fallback ping monitoring script. Running on a separate VM, it pings target servers and sends email alerts if they don’t respond after several attempts. It’s a simple fallback solution for basic connectivity checks.
 
 ## Environment setup:
 This fallback ping monitoring solution was implemented and tested in an AWS environment. The setup included 3 EC2 instances:
-- 1 EC2 instance  the `ping-monitoring server` (our VM, not a service provider’s monitoring system).
-- 2 EC2 instance as `target hosts`.
+- 1 EC2 instance acting as the `ping-monitoring server` (our VM, not a service provider’s monitoring system).
+- 2 EC2 instance as the `target hosts`.
 
 ## Implementation steps
 Steps 1 through 3 are the prerequisites before running the ping-failure-alert.sh script on our dedicated VM, which is acting as the monitoring server (not the service provider's monitoring system).
